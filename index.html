@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Sketch Pad — Parabola & Hyperbola Sketcher</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#0f1720;
+    --muted:#9aa6b2;
+    --accent:#64d2ff;
+    --card:#0b1220;
+    --grid:#16202a;
+    --white:#e6eef6;
+  }
+  .light{
+    --bg:#f4f7fb;
+    --panel:#ffffff;
+    --muted:#475569;
+    --accent:#0ea5ff;
+    --card:#ffffff;
+    --grid:#e6eef6;
+    --white:#0b1220;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Arial;}
+  body{
+    background:linear-gradient(180deg,var(--bg),#071018 200px);
+    color:var(--white);
+    display:flex;
+    gap:18px;
+    padding:18px;
+    box-sizing:border-box;
+  }
+
+  .sidebar{
+    width:360px;
+    max-width:38%;
+    background:linear-gradient(180deg,var(--panel),#071226);
+    border-radius:12px;padding:16px;
+    box-shadow:0 6px 20px rgba(0,0,0,.5);
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .title{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  h1{font-size:18px;margin:0}
+  .muted{color:var(--muted);font-size:13px}
+  .controls{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+  select,input[type="number"],input[type="text"]{
+    width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);
+    background:transparent;color:var(--white);
+    box-sizing:border-box;
+  }
+  .row{display:flex;gap:8px}
+  button{
+    padding:8px 10px;border-radius:8px;border:0;background:linear-gradient(90deg,var(--accent),#45b8ff);
+    color:#05202b;font-weight:600;cursor:pointer;
+    min-height:44px; /* Minimum touch target size */
+    display:flex;align-items:center;justify-content:center;
+    transition: transform 0.1s ease;
+  }
+  button:active{
+    transform: scale(0.95);
+  }
+  .small{font-size:13px;padding:6px 8px}
+  .muted-box{background:rgba(255,255,255,.02);padding:10px;border-radius:8px;color:var(--muted);font-size:13px}
+
+  canvas{
+    flex:1;border-radius:12px;background:linear-gradient(180deg,var(--card), #071226);
+    box-shadow:0 8px 30px rgba(0,0,0,.7);
+    cursor:crosshair;
+    touch-action: none; /* Prevent default touch behaviors */
+  }
+
+  .footer{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:auto}
+  .list{max-height:200px;overflow:auto;padding:6px;display:flex;flex-direction:column;gap:6px}
+  .item{padding:8px;border-radius:8px;background:rgba(255,255,255,.02);display:flex;justify-content:space-between;align-items:center}
+  .color-dot{width:14px;height:14px;border-radius:50%}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+
+  /* Mobile and tablet responsiveness */
+  @media (max-width:900px){
+    body{
+      flex-direction:column;
+      padding:12px;
+      gap:12px;
+    }
+    .sidebar{
+      width:100%;
+      max-width:100%;
+      padding:12px;
+    }
+    canvas{
+      height:50vh;
+      min-height:300px;
+    }
+    .controls{
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    .row{
+      flex-direction:column;
+      gap:8px;
+    }
+    h1{font-size:16px}
+    .title{
+      flex-direction:column;
+      align-items:flex-start;
+      gap:8px;
+    }
+  }
+
+  /* Phone screens */
+  @media (max-width:600px){
+    body{
+      padding:8px;
+      gap:8px;
+    }
+    .sidebar{
+      padding:10px;
+    }
+    canvas{
+      height:45vh;
+      min-height:250px;
+    }
+    h1{font-size:14px}
+    .muted{font-size:12px}
+    label{font-size:12px}
+    select,input[type="number"],input[type="text"]{
+      padding:10px 8px;
+      font-size:14px;
+    }
+    button{
+      padding:10px 12px;
+      font-size:14px;
+    }
+    .small{
+      font-size:12px;
+      padding:8px 10px;
+    }
+    .controls{
+      gap:8px;
+    }
+    .footer{
+      flex-direction:column;
+      gap:4px;
+      align-items:flex-start;
+    }
+    .list{
+      max-height:150px;
+    }
+    .item{
+      padding:6px;
+      font-size:13px;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <div class="title">
+      <div>
+        <h1>Sketch Pad</h1>
+        <div class="muted">Plot parabolas, hyperbolas, add points — pan & zoom supported</div>
+      </div>
+      <div style="text-align:right">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label class="muted" for="modeToggle" style="margin:0">Theme</label>
+          <button id="modeToggle" class="small">Light</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="muted-box">
+      <label>Tool</label>
+      <div class="row" style="align-items:center">
+        <select id="toolSelect">
+          <option value="point">Point (click)</option>
+          <option value="parabola">Parabola (vertex form)</option>
+          <option value="hyperbola">Hyperbola (center form)</option>
+          <option value="freehand">Freehand</option>
+        </select>
+        <button id="drawBtn" class="small">Draw</button>
+      </div>
+      <div class="hint">Click on canvas to place points (for point tool). For parabola/hyperbola, enter parameters then press Draw.</div>
+    </div>
+
+    <div class="muted-box" id="paramPanel">
+      <!-- param inputs dynamically shown -->
+      <div id="pointParams" style="display:none">
+        <label>Point color</label>
+        <div class="row">
+          <input id="pointColor" type="color" value="#ffcc00" />
+          <input id="pointLabel" type="text" placeholder="Label (optional)" />
+        </div>
+      </div>
+
+      <div id="parabolaParams" style="display:none">
+        <label>Parabola — vertex form: (x-h)^2 = 4p(y-k)  <span class="muted">(vertical)</span></label>
+        <div class="row">
+          <input id="pv_h" type="number" step="any" placeholder="h (vertex x)" />
+          <input id="pv_k" type="number" step="any" placeholder="k (vertex y)" />
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input id="pv_p" type="number" step="any" placeholder="p (focal distance)" />
+          <select id="pv_orient">
+            <option value="up">Open Up</option>
+            <option value="down">Open Down</option>
+            <option value="right">Open Right (horizontal)</option>
+            <option value="left">Open Left (horizontal)</option>
+          </select>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label style="flex:1">Color</label>
+          <input id="parabColor" type="color" value="#ff6b6b" />
+        </div>
+      </div>
+
+      <div id="hyperbolaParams" style="display:none">
+        <label>Hyperbola — center form:
+          <span class="muted">(x-h)^2/a^2 − (y-k)^2/b^2 = 1 (or swapped)</span>
+        </label>
+        <div class="row">
+          <input id="hv_h" type="number" step="any" placeholder="h (center x)" />
+          <input id="hv_k" type="number" step="any" placeholder="k (center y)" />
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input id="hv_a" type="number" step="any" placeholder="a" />
+          <input id="hv_b" type="number" step="any" placeholder="b" />
+        </div>
+        <div class="row" style="margin-top:8px">
+          <select id="hv_orient">
+            <option value="horizontal">Transverse axis horizontal</option>
+            <option value="vertical">Transverse axis vertical</option>
+          </select>
+          <input id="hyperColor" type="color" value="#7c5cff" />
+        </div>
+      </div>
+    </div>
+
+    <div class="muted-box">
+      <label>Actions</label>
+      <div class="row">
+        <button id="clearAll">Clear All</button>
+        <button id="exportPNG" class="small">Export PNG</button>
+        <button id="fitView" class="small">Reset View</button>
+      </div>
+      <div class="hint">Pan: drag background. Zoom: mouse wheel. Click shape list to remove.</div>
+    </div>
+
+    <div>
+      <label>Objects</label>
+      <div class="list" id="objectList"></div>
+    </div>
+
+    <div class="footer">
+      <div class="muted">Coordinate system: Cartesian</div>
+      <div class="muted">© SketchPad</div>
+    </div>
+  </div>
+
+  <canvas id="sketch" width="1200" height="800"></canvas>
+
+<script>
+/* --- Canvas + Transform utilities --- */
+const canvas = document.getElementById('sketch');
+const ctx = canvas.getContext('2d', { alpha: false });
+let DPR = window.devicePixelRatio || 1;
+function resizeCanvas(){
+  DPR = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || canvas.width;
+  const h = canvas.clientHeight || canvas.height;
+  canvas.width = Math.floor(w * DPR);
+  canvas.height = Math.floor(h * DPR);
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+/* world transform: maps world coords to screen coords
+   screenX = (worldX - offsetX) * scale + cx
+   We'll implement simple pan/zoom with offset and scale */
+let scale = 40; // pixels per unit
+let offsetX = 0; // world coords at canvas center
+let offsetY = 0;
+function worldToScreen(x,y){
+  const cx = canvas.clientWidth/2;
+  const cy = canvas.clientHeight/2;
+  return {
+    x: cx + (x - offsetX) * scale,
+    y: cy - (y - offsetY) * scale
+  };
+}
+function screenToWorld(sx,sy){
+  const cx = canvas.clientWidth/2;
+  const cy = canvas.clientHeight/2;
+  return {
+    x: offsetX + (sx - cx)/scale,
+    y: offsetY - (sy - cy)/scale
+  };
+}
+
+/* --- Grid & axes drawing --- */
+function drawGrid(){
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--card') || '#071226';
+  ctx.fillRect(0,0,w,h);
+
+  // minor grid spacing: choose unit spacing based on scale
+  const unit = chooseNiceUnit(scale);
+  const bounds = {
+    left: screenToWorld(0,0).x,
+    right: screenToWorld(w,0).x,
+    top: screenToWorld(0,0).y,
+    bottom: screenToWorld(0,h).y
+  };
+
+  // vertical lines
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--grid') || '#17313a';
+  ctx.globalAlpha = 0.55;
+  for(let x = Math.floor(bounds.left/unit)*unit; x <= bounds.right; x += unit){
+    const sx = worldToScreen(x,0).x;
+    ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,h); ctx.stroke();
+  }
+  // horizontal lines
+  for(let y = Math.floor(bounds.bottom/unit)*unit; y <= bounds.top; y += unit){
+    const sy = worldToScreen(0,y).y;
+    ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(w,sy); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // axes
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--muted') || '#9aa6b2';
+  // y axis (x=0)
+  const sYaxis = worldToScreen(0,0).x;
+  ctx.beginPath(); ctx.moveTo(sYaxis,0); ctx.lineTo(sYaxis,h); ctx.stroke();
+  // x axis (y=0)
+  const sXaxis = worldToScreen(0,0).y;
+  ctx.beginPath(); ctx.moveTo(0,sXaxis); ctx.lineTo(w,sXaxis); ctx.stroke();
+
+  // tick labels
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--muted') || '#9aa6b2';
+  ctx.font = '12px system-ui';
+  // x ticks
+  for(let x = Math.floor(bounds.left/unit)*unit; x <= bounds.right; x += unit){
+    const sx = worldToScreen(x,0).x;
+    const sy = sXaxis;
+    ctx.fillText(String(roundTo(x,2)), sx+4, sy-4);
+  }
+  for(let y = Math.floor(bounds.bottom/unit)*unit; y <= bounds.top; y += unit){
+    const sx = sYaxis;
+    const sy = worldToScreen(0,y).y;
+    if(Math.abs(y) < 1e-6) continue;
+    ctx.fillText(String(roundTo(y,2)), sx+4, sy-4);
+  }
+}
+
+function chooseNiceUnit(pxPerUnit){
+  // pxPerUnit is scale. We choose unit such that grid is 40-120 pixels
+  const targets = [0.1,0.2,0.5,1,2,5,10,20,50,100,200,500,1000];
+  for(let t of targets){
+    if(t * pxPerUnit >= 40 && t * pxPerUnit <= 140) return t;
+  }
+  // fallback
+  return Math.max(chooseClosest(targets, 40/pxPerUnit), 1);
+}
+function chooseClosest(arr,val){
+  return arr.reduce((a,b)=> Math.abs(b-val) < Math.abs(a-val) ? b : a);
+}
+
+/* --- helpers --- */
+function roundTo(n,dec=2){ return Math.round(n * Math.pow(10,dec))/Math.pow(10,dec); }
+
+/* --- object model --- */
+const objects = []; // each: {id, type, params, color, meta}
+let nextId = 1;
+
+/* --- drawing routine --- */
+function draw(){
+  // clear
+  drawGrid();
+
+  // draw objects
+  for(const obj of objects){
+    if(obj.type === 'point'){
+      drawPoint(obj);
+    } else if(obj.type === 'parabola'){
+      drawParabola(obj);
+    } else if(obj.type === 'hyperbola'){
+      drawHyperbola(obj);
+    } else if(obj.type === 'freehand'){
+      drawFreehand(obj);
+    }
+  }
+}
+function drawPoint(obj){
+  const {x,y,label} = obj.params;
+  const s = worldToScreen(x,y);
+  ctx.beginPath();
+  ctx.fillStyle = obj.color;
+  ctx.arc(s.x, s.y, 6, 0, Math.PI*2);
+  ctx.fill();
+  if(label){
+    ctx.font = '12px system-ui';
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--muted');
+    ctx.fillText(label + ` (${roundTo(x,2)},${roundTo(y,2)})`, s.x+8, s.y-8);
+  } else {
+    ctx.font = '11px system-ui';
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--muted');
+    ctx.fillText(`(${roundTo(x,2)},${roundTo(y,2)})`, s.x+8, s.y-8);
+  }
+}
+
+function drawParabola(obj){
+  // vertex form: (x-h)^2 = 4p(y-k) for vertical. For horizontal: (y-k)^2 = 4p(x-h)
+  const {h,k,p,orient} = obj.params;
+  const color = obj.color;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = color;
+  ctx.beginPath();
+  const step = 1 / Math.max(1, Math.sqrt(scale)); // step in world coords adaptively
+  // sample across visible range
+  const left = screenToWorld(0,0).x - 5;
+  const right = screenToWorld(canvas.clientWidth,0).x + 5;
+
+  let first = true;
+  if(orient === 'up' || orient === 'down'){
+    // vertical: (x-h)^2 = 4p(y-k) => y = k + (x-h)^2 / (4p)
+    const sign = (orient === 'up') ? 1 : -1;
+    // if p negative and orientation up -> flips; p considered absolute then sign handles
+    for(let x = left; x <= right; x += step){
+      // avoid dividing by zero: p==0 invalid
+      if(Math.abs(p) < 1e-6) continue;
+      const y = k + sign * Math.pow(x - h, 2) / (4 * Math.abs(p));
+      const s = worldToScreen(x,y);
+      if(first){ ctx.moveTo(s.x,s.y); first=false; } else { ctx.lineTo(s.x,s.y); }
+    }
+  } else {
+    // horizontal: (y-k)^2 = 4p(x-h) => x = h + (y-k)^2/(4p)
+    const sign = (orient === 'right') ? 1 : -1;
+    const top = screenToWorld(0,0).y + 5;
+    const bottom = screenToWorld(0,canvas.clientHeight).y - 5;
+    for(let y = bottom; y <= top; y += step){
+      if(Math.abs(p) < 1e-6) continue;
+      const x = h + sign * Math.pow(y - k, 2) / (4 * Math.abs(p));
+      const s = worldToScreen(x,y);
+      if(first){ ctx.moveTo(s.x,s.y); first=false; } else { ctx.lineTo(s.x,s.y); }
+    }
+  }
+  ctx.stroke();
+
+  // draw vertex and focus (computed)
+  const v = worldToScreen(h,k);
+  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(v.x,v.y,4,0,Math.PI*2); ctx.fill();
+  // focus depends on orientation
+  let fx,fy;
+  if(orient === 'up') { fx = h; fy = k + p; }
+  else if(orient === 'down') { fx = h; fy = k - p; }
+  else if(orient === 'right') { fx = h + p; fy = k; }
+  else { fx = h - p; fy = k; }
+  if(!isNaN(fx) && !isNaN(fy)){
+    const fs = worldToScreen(fx,fy);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(fs.x, fs.y,3,0,Math.PI*2); ctx.fill();
+    ctx.font = '11px system-ui'; ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--muted');
+    ctx.fillText('vertex', v.x+6, v.y-6); ctx.fillText('focus', fs.x+6, fs.y-6);
+  }
+}
+
+function drawHyperbola(obj){
+  // center (h,k), a,b, orientation horizontal or vertical
+  const {h,k,a,b,orient} = obj.params;
+  ctx.lineWidth = 2; ctx.strokeStyle = obj.color;
+  const step = 1 / Math.max(1, Math.sqrt(scale));
+  // sample across x (for horizontal transverse) or y (for vertical)
+  ctx.beginPath();
+  if(orient === 'horizontal'){
+    // right branch: x = h + sqrt(a^2 + (a^2/b^2)*(y-k)^2)
+    // param sample by y across visible
+    const top = screenToWorld(0,0).y + 10;
+    const bottom = screenToWorld(0,canvas.clientHeight).y - 10;
+    let first=true;
+    for(let y = bottom; y <= top; y += step){
+      const term = (a*a/b/b) * Math.pow(y-k,2) + a*a;
+      const root = Math.sqrt(Math.max(0, term));
+      let x = h + root;
+      const s = worldToScreen(x,y);
+      if(first){ ctx.moveTo(s.x,s.y); first=false; } else ctx.lineTo(s.x,s.y);
+    }
+    ctx.stroke();
+    // left branch
+    ctx.beginPath(); first=true;
+    for(let y = bottom; y <= top; y += step){
+      const term = (a*a/b/b) * Math.pow(y-k,2) + a*a;
+      const root = Math.sqrt(Math.max(0, term));
+      let x = h - root;
+      const s = worldToScreen(x,y);
+      if(first){ ctx.moveTo(s.x,s.y); first=false; } else ctx.lineTo(s.x,s.y);
+    }
+    ctx.stroke();
+  } else {
+    // vertical transverse: y = k ± sqrt(a^2 + (a^2/b^2)*(x-h)^2)
+    const left = screenToWorld(0,0).x - 10;
+    const right = screenToWorld(canvas.clientWidth,0).x + 10;
+    let first=true;
+    for(let x = left; x <= right; x += step){
+      const term = (a*a/b/b) * Math.pow(x-h,2) + a*a;
+      const root = Math.sqrt(Math.max(0, term));
+      let y = k + root;
+      const s = worldToScreen(x,y);
+      if(first){ ctx.moveTo(s.x,s.y); first=false; } else ctx.lineTo(s.x,s.y);
+    }
+    ctx.stroke();
+    ctx.beginPath(); first=true;
+    for(let x = left; x <= right; x += step){
+      const term = (a*a/b/b) * Math.pow(x-h,2) + a*a;
+      const root = Math.sqrt(Math.max(0, term));
+      let y = k - root;
+      const s = worldToScreen(x,y);
+      if(first){ ctx.moveTo(s.x,s.y); first=false; } else ctx.lineTo(s.x,s.y);
+    }
+    ctx.stroke();
+  }
+  // center marker
+  const c = worldToScreen(h,k);
+  ctx.fillStyle = obj.color; ctx.beginPath(); ctx.arc(c.x,c.y,4,0,Math.PI*2); ctx.fill();
+}
+
+function drawFreehand(obj){
+  ctx.strokeStyle = obj.color; ctx.lineWidth = 2; ctx.beginPath();
+  const pts = obj.params.points;
+  if(!pts || pts.length===0) return;
+  for(let i=0;i<pts.length;i++){
+    const s = worldToScreen(pts[i].x, pts[i].y);
+    if(i===0) ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y);
+  }
+  ctx.stroke();
+}
+
+/* --- UI wiring --- */
+const toolSelect = document.getElementById('toolSelect');
+const drawBtn = document.getElementById('drawBtn');
+const paramPanel = document.getElementById('paramPanel');
+const pointParams = document.getElementById('pointParams');
+const parabParams = document.getElementById('parabolaParams');
+const hyperParams = document.getElementById('hyperbolaParams');
+
+function updateParamVisibility(){
+  const tool = toolSelect.value;
+  pointParams.style.display = (tool==='point') ? 'block' : 'none';
+  parabParams.style.display = (tool==='parabola') ? 'block' : 'none';
+  hyperParams.style.display = (tool==='hyperbola') ? 'block' : 'none';
+}
+toolSelect.addEventListener('change', updateParamVisibility);
+updateParamVisibility();
+
+/* elements */
+const pv_h = document.getElementById('pv_h');
+const pv_k = document.getElementById('pv_k');
+const pv_p = document.getElementById('pv_p');
+const pv_orient = document.getElementById('pv_orient');
+const parColor = document.getElementById('parabColor');
+
+const hv_h = document.getElementById('hv_h');
+const hv_k = document.getElementById('hv_k');
+const hv_a = document.getElementById('hv_a');
+const hv_b = document.getElementById('hv_b');
+const hv_orient = document.getElementById('hv_orient');
+const hyperColor = document.getElementById('hyperColor');
+
+const pointColor = document.getElementById('pointColor');
+const pointLabel = document.getElementById('pointLabel');
+
+const objectList = document.getElementById('objectList');
+
+function addObject(obj){
+  obj.id = nextId++;
+  objects.push(obj);
+  refreshObjectList();
+  draw();
+}
+function removeObject(id){
+  const idx = objects.findIndex(o=>o.id===id);
+  if(idx>=0) objects.splice(idx,1);
+  refreshObjectList(); draw();
+}
+function refreshObjectList(){
+  objectList.innerHTML = '';
+  for(const o of [...objects].reverse()){
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.innerHTML = `<div style="display:flex;gap:8px;align-items:center">
+      <div class="color-dot" style="background:${o.color}"></div>
+      <div>
+        <div style="font-weight:600">${o.type}</div>
+        <div style="font-size:12px;color:var(--muted)">${describeObj(o)}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="small" data-remove="${o.id}">Remove</button>
+    </div>`;
+    objectList.appendChild(el);
+  }
+  // wire remove
+  objectList.querySelectorAll('button[data-remove]').forEach(b=>{
+    b.onclick = ()=> removeObject(parseInt(b.getAttribute('data-remove')));
+  });
+}
+function describeObj(o){
+  if(o.type==='point') return `(${roundTo(o.params.x,2)},${roundTo(o.params.y,2)}) ${o.params.label ? '- '+o.params.label : ''}`;
+  if(o.type==='parabola') return `vertex(${o.params.h},${o.params.k}) p=${o.params.p} ${o.params.orient}`;
+  if(o.type==='hyperbola') return `center(${o.params.h},${o.params.k}) a=${o.params.a} b=${o.params.b} ${o.params.orient}`;
+  if(o.type==='freehand') return `freehand (${o.params.points.length} pts)`;
+  return '';
+}
+
+/* draw button behavior: for parabola/hyperbola, add object with params.
+   For point tool, place points by clicking; draw button toggles listening. */
+let placingPointMode = false;
+drawBtn.addEventListener('click', ()=>{
+  const tool = toolSelect.value;
+  if(tool === 'parabola'){
+    const h = parseFloat(pv_h.value) || 0;
+    const k = parseFloat(pv_k.value) || 0;
+    const p = parseFloat(pv_p.value) || 1;
+    const orient = pv_orient.value;
+    addObject({type:'parabola', params:{h,k,p,orient}, color:parColor.value});
+  } else if(tool === 'hyperbola'){
+    const h = parseFloat(hv_h.value) || 0;
+    const k = parseFloat(hv_k.value) || 0;
+    const a = Math.abs(parseFloat(hv_a.value) || 1);
+    const b = Math.abs(parseFloat(hv_b.value) || 1);
+    const orient = hv_orient.value;
+    addObject({type:'hyperbola', params:{h,k,a,b,orient}, color:hyperColor.value});
+  } else if(tool === 'point'){
+    // toggle placing mode
+    placingPointMode = !placingPointMode;
+    drawBtn.textContent = placingPointMode ? 'Click to add points (Stop)' : 'Draw';
+    canvas.style.cursor = placingPointMode ? 'crosshair' : 'grab';
+  } else if(tool === 'freehand'){
+    alert('Freehand: click Draw, then press and drag on canvas to draw strokes. Press Draw again to end stroke.');
+    placingPointMode = !placingPointMode;
+    drawBtn.textContent = placingPointMode ? 'Drawing... (Stop)' : 'Draw';
+  }
+});
+
+/* canvas events: click to place a point when in placingPointMode */
+canvas.addEventListener('click', (ev)=>{
+  if(!placingPointMode) return;
+  ev.preventDefault(); // Prevent mobile zoom on tap
+  const rect = canvas.getBoundingClientRect();
+  const sx = ev.clientX - rect.left;
+  const sy = ev.clientY - rect.top;
+  const w = screenToWorld(sx,sy);
+  if(toolSelect.value === 'point'){
+    addObject({type:'point', params:{x:w.x, y:w.y, label:pointLabel.value||''}, color: pointColor.value});
+  }
+});
+
+/* Touch support for mobile devices */
+canvas.addEventListener('touchstart', (ev)=>{
+  ev.preventDefault();
+  if(ev.touches.length === 1){
+    const touch = ev.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const fakeEvent = {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      offsetX: touch.clientX - rect.left,
+      offsetY: touch.clientY - rect.top
+    };
+    
+    if(toolSelect.value==='freehand' && placingPointMode){
+      isDrawing = true;
+      currentStroke = [{...screenToWorld(fakeEvent.offsetX, fakeEvent.offsetY)}];
+    } else {
+      isPanning = true; 
+      lastPan = {x:touch.clientX, y:touch.clientY};
+      canvas.style.cursor = 'grabbing';
+    }
+  }
+});
+
+canvas.addEventListener('touchmove', (ev)=>{
+  ev.preventDefault();
+  if(ev.touches.length === 1){
+    const touch = ev.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const fakeEvent = {
+      offsetX: touch.clientX - rect.left,
+      offsetY: touch.clientY - rect.top,
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    };
+    
+    if(isDrawing){
+      currentStroke.push({...screenToWorld(fakeEvent.offsetX, fakeEvent.offsetY)});
+      draw();
+      ctx.lineWidth=2; ctx.strokeStyle = document.getElementById('hyperColor').value;
+      ctx.beginPath();
+      for(let i=0;i<currentStroke.length;i++){
+        const s = worldToScreen(currentStroke[i].x, currentStroke[i].y);
+        if(i===0) ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y);
+      }
+      ctx.stroke();
+    } else if(isPanning){
+      const dx = touch.clientX - lastPan.x;
+      const dy = touch.clientY - lastPan.y;
+      offsetX -= dx/scale;
+      offsetY += dy/scale;
+      lastPan = {x:touch.clientX, y:touch.clientY};
+      draw();
+    }
+  }
+});
+
+canvas.addEventListener('touchend', (ev)=>{
+  ev.preventDefault();
+  if(isDrawing){
+    isDrawing=false;
+    addObject({type:'freehand', params:{points:currentStroke.slice()}, color:document.getElementById('hyperColor').value});
+    currentStroke = [];
+  } else {
+    isPanning = false; 
+    canvas.style.cursor = 'grab';
+  }
+  
+  // Handle tap for point placement
+  if(placingPointMode && toolSelect.value === 'point' && ev.changedTouches.length === 1){
+    const touch = ev.changedTouches[0];
+    const rect = canvas.getBoundingClientRect();
+    const sx = touch.clientX - rect.left;
+    const sy = touch.clientY - rect.top;
+    const w = screenToWorld(sx,sy);
+    addObject({type:'point', params:{x:w.x, y:w.y, label:pointLabel.value||''}, color: pointColor.value});
+  }
+});
+
+/* freehand drawing and mobile touch support */
+let isDrawing = false;
+let lastTouchDistance = 0;
+
+canvas.addEventListener('pointerdown', (ev)=>{
+  if(toolSelect.value==='freehand' && placingPointMode){
+    isDrawing = true;
+    currentStroke = [{...screenToWorld(ev.offsetX, ev.offsetY)}];
+  } else {
+    // start panning
+    isPanning = true; lastPan = {x:ev.clientX, y:ev.clientY};
+    canvas.style.cursor = 'grabbing';
+  }
+});
+
+let currentStroke = [];
+canvas.addEventListener('pointermove', (ev)=>{
+  if(isDrawing){
+    currentStroke.push({...screenToWorld(ev.offsetX, ev.offsetY)});
+    draw(); // show while drawing
+    // draw stroke preview
+    ctx.lineWidth=2; ctx.strokeStyle = document.getElementById('hyperColor').value;
+    ctx.beginPath();
+    for(let i=0;i<currentStroke.length;i++){
+      const s = worldToScreen(currentStroke[i].x, currentStroke[i].y);
+      if(i===0) ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y);
+    }
+    ctx.stroke();
+  } else if(isPanning){
+    const dx = ev.clientX - lastPan.x;
+    const dy = ev.clientY - lastPan.y;
+    // convert px delta to world delta
+    offsetX -= dx/scale;
+    offsetY += dy/scale;
+    lastPan = {x:ev.clientX, y:ev.clientY};
+    draw();
+  }
+});
+
+canvas.addEventListener('pointerup', (ev)=>{
+  if(isDrawing){
+    isDrawing=false;
+    // commit stroke
+    addObject({type:'freehand', params:{points:currentStroke.slice()}, color:document.getElementById('hyperColor').value});
+    currentStroke = [];
+  } else {
+    isPanning = false; canvas.style.cursor = 'grab';
+  }
+});
+
+canvas.addEventListener('pointerleave', ()=>{ isDrawing=false; isPanning=false; canvas.style.cursor='grab'; });
+
+/* panning state */
+let isPanning=false, lastPan={x:0,y:0};
+
+/* zoom with wheel and touch pinch */
+canvas.addEventListener('wheel', (ev)=>{
+  ev.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = ev.clientX - rect.left;
+  const mouseY = ev.clientY - rect.top;
+  const worldBefore = screenToWorld(mouseX, mouseY);
+  const delta = -ev.deltaY; // positive -> zoom in
+  const zoomFactor = Math.exp(delta * 0.0012); // smooth zoom
+  scale *= zoomFactor;
+  // clamp scale
+  scale = Math.min(Math.max(scale, 10), 800);
+  // adjust offset so the world point under cursor remains fixed
+  const worldAfter = screenToWorld(mouseX, mouseY);
+  offsetX += worldBefore.x - worldAfter.x;
+  offsetY += worldBefore.y - worldAfter.y;
+  draw();
+});
+
+/* Pinch-to-zoom for mobile */
+canvas.addEventListener('touchstart', (ev)=>{
+  if(ev.touches.length === 2){
+    // Start pinch gesture
+    const touch1 = ev.touches[0];
+    const touch2 = ev.touches[1];
+    lastTouchDistance = Math.hypot(
+      touch2.clientX - touch1.clientX,
+      touch2.clientY - touch1.clientY
+    );
+    ev.preventDefault();
+  }
+});
+
+canvas.addEventListener('touchmove', (ev)=>{
+  if(ev.touches.length === 2){
+    // Handle pinch zoom
+    ev.preventDefault();
+    const touch1 = ev.touches[0];
+    const touch2 = ev.touches[1];
+    const currentDistance = Math.hypot(
+      touch2.clientX - touch1.clientX,
+      touch2.clientY - touch1.clientY
+    );
+    
+    if(lastTouchDistance > 0){
+      const rect = canvas.getBoundingClientRect();
+      // Use center point between fingers as zoom center
+      const centerX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
+      const centerY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+      const worldBefore = screenToWorld(centerX, centerY);
+      
+      const zoomFactor = currentDistance / lastTouchDistance;
+      scale *= zoomFactor;
+      scale = Math.min(Math.max(scale, 10), 800);
+      
+      const worldAfter = screenToWorld(centerX, centerY);
+      offsetX += worldBefore.x - worldAfter.x;
+      offsetY += worldBefore.y - worldAfter.y;
+      draw();
+    }
+    
+    lastTouchDistance = currentDistance;
+    return;
+  }
+  // Continue with existing single-touch logic...
+  if(ev.touches.length === 1){
+    const touch = ev.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const fakeEvent = {
+      offsetX: touch.clientX - rect.left,
+      offsetY: touch.clientY - rect.top,
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    };
+    
+    if(isDrawing){
+      currentStroke.push({...screenToWorld(fakeEvent.offsetX, fakeEvent.offsetY)});
+      draw();
+      ctx.lineWidth=2; ctx.strokeStyle = document.getElementById('hyperColor').value;
+      ctx.beginPath();
+      for(let i=0;i<currentStroke.length;i++){
+        const s = worldToScreen(currentStroke[i].x, currentStroke[i].y);
+        if(i===0) ctx.moveTo(s.x,s.y); else ctx.lineTo(s.x,s.y);
+      }
+      ctx.stroke();
+    } else if(isPanning){
+      const dx = touch.clientX - lastPan.x;
+      const dy = touch.clientY - lastPan.y;
+      offsetX -= dx/scale;
+      offsetY += dy/scale;
+      lastPan = {x:touch.clientX, y:touch.clientY};
+      draw();
+    }
+  }
+});
+
+canvas.addEventListener('touchend', (ev)=>{
+  if(ev.touches.length < 2){
+    lastTouchDistance = 0;
+  }
+  // Continue with existing logic...
+  ev.preventDefault();
+  if(isDrawing){
+    isDrawing=false;
+    addObject({type:'freehand', params:{points:currentStroke.slice()}, color:document.getElementById('hyperColor').value});
+    currentStroke = [];
+  } else {
+    isPanning = false; 
+    canvas.style.cursor = 'grab';
+  }
+  
+  // Handle tap for point placement
+  if(placingPointMode && toolSelect.value === 'point' && ev.changedTouches.length === 1){
+    const touch = ev.changedTouches[0];
+    const rect = canvas.getBoundingClientRect();
+    const sx = touch.clientX - rect.left;
+    const sy = touch.clientY - rect.top;
+    const w = screenToWorld(sx,sy);
+    addObject({type:'point', params:{x:w.x, y:w.y, label:pointLabel.value||''}, color: pointColor.value});
+  }
+});
+
+/* export & clear */
+document.getElementById('clearAll').addEventListener('click', ()=>{
+  if(!confirm('Clear all objects?')) return;
+  objects.length = 0; refreshObjectList(); draw();
+});
+document.getElementById('exportPNG').addEventListener('click', ()=>{
+  const link = document.createElement('a');
+  link.href = canvas.toDataURL('image/png');
+  link.download = 'sketch.png';
+  link.click();
+});
+document.getElementById('fitView').addEventListener('click', ()=>{
+  // reset view
+  offsetX = 0; offsetY = 0; scale = 40; draw();
+});
+
+/* theme toggle */
+const modeBtn = document.getElementById('modeToggle');
+modeBtn.addEventListener('click', ()=>{
+  document.body.classList.toggle('light');
+  modeBtn.textContent = document.body.classList.contains('light') ? 'Dark' : 'Light';
+  draw();
+});
+
+/* initial view fit */
+offsetX = 0; offsetY = 0; scale = 40;
+
+/* simple resize and initial draw */
+setTimeout(resizeCanvas, 50);
+
+/* helper to create some sample defaults */
+pv_h.value = 0; pv_k.value = 0; pv_p.value = 1;
+hv_h.value = 0; hv_k.value = 0; hv_a.value = 2; hv_b.value = 1;
+
+/* utilities for parabola/hyperbola creation via interactive draw button are handled earlier */
+
+/* nice: double-click to center view on clicked world coordinate */
+canvas.addEventListener('dblclick', (ev)=>{
+  const rect = canvas.getBoundingClientRect();
+  const w = screenToWorld(ev.clientX-rect.left, ev.clientY-rect.top);
+  offsetX = w.x; offsetY = w.y;
+  draw();
+});
+
+/* ensure keyboard shortcuts: Delete removes last object */
+window.addEventListener('keydown', (ev)=>{
+  if(ev.key === 'Delete'){
+    objects.pop(); refreshObjectList(); draw();
+  }
+});
+
+/* draw loop */
+draw();
+</script>
+</body>
+</html>
