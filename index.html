@@ -91,6 +91,21 @@
       width:100%;
       max-width:100%;
       padding:12px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+      height: 100vh;
+      transform: translateX(-100%);
+    }
+    .sidebar.open{
+      transform: translateX(0);
+    }
+    #toggleSidebar{
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1001;
     }
     canvas{
       height:50vh;
